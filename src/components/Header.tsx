@@ -12,8 +12,12 @@ export function Header() {
         </Link>
         <nav className="flex items-center gap-1 text-sm">
           <Link href="/" className="px-3 py-1.5 rounded-md hover:bg-white/5">Play</Link>
+          <Link href="/bracket/daily" className="px-3 py-1.5 rounded-md hover:bg-white/5">
+            Bracket
+            <span className="ml-1.5 text-[10px] text-accent/80 align-top">NEW</span>
+          </Link>
           <Link href="/rankings" className="px-3 py-1.5 rounded-md hover:bg-white/5">Rankings</Link>
-          <Link href="/about" className="px-3 py-1.5 rounded-md hover:bg-white/5">About</Link>
+          <Link href="/about" className="px-3 py-1.5 rounded-md hover:bg-white/5 hidden sm:inline">About</Link>
         </nav>
       </div>
     </header>

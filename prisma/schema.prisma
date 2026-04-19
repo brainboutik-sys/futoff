@@ -1,6 +1,4 @@
 // FUTOFF — Prisma schema.
-// Dev default: SQLite. For Postgres prod: change provider to "postgresql" and set DATABASE_URL.
-// The schema intentionally uses scalar types that are portable across both.
 
 generator client {
   provider = "prisma-client-js"
@@ -14,60 +12,72 @@ datasource db {
 
 model PlayerCard {
   id            Int      @id @default(autoincrement())
-  externalId    String   @unique // EA player ID from dataset
-  playerName    String            // raw full name
-  displayName   String            // shortened / UI-facing name
-  gender        String?           // "M" | "F"
+  externalId    String   @unique
+  playerName    String
+  displayName   String
+  gender        String?
   club          String?
   nation        String?
   league        String?
-  position      String            // primary position ("ST", "CM", "GK", ...)
-  altPositions  String?           // JSON array encoded as string
+  position      String
+  altPositions  String?
   overallRating Int
-  // Six headline stats (GKs: derived from GK-specific attributes when present)
   pace          Int
   shooting      Int
   passing       Int
   dribbling     Int
   defending     Int
   physical      Int
-  // Goalkeeper-specific (nullable for outfield)
   gkDiving      Int?
   gkHandling    Int?
   gkKicking     Int?
   gkPositioning Int?
   gkReflexes    Int?
-  // Meta
   height        String?
   weight        String?
   age           Int?
   weakFoot      Int?
   skillMoves    Int?
   preferredFoot String?
-  playStyles    String?           // JSON array encoded as string
+  playStyles    String?
   imageUrl      String?
-  cardType      String            @default("standard") // standard | icon | hero | featured
+  cardType      String   @default("standard") // standard | icon | hero | gold-rare | gold | silver | bronze
   featured      Boolean  @default(false)
-  source        String            @default("dataset")
+  source        String   @default("dataset")
   createdAt     DateTime @default(now())
 
-  leftMatchups  Matchup[] @relation("LeftCard")
-  rightMatchups Matchup[] @relation("RightCard")
-  votes         Vote[]    @relation("ChosenCard")
+  // v2
+  eloRating  Int     @default(1500)
+  eloMatches Int     @default(0)
+  tags       String? // JSON array: ["pace_monster","skill_merchant","tank","playmaker","icon","featured"]
+
+  leftMatchups         Matchup[]      @relation("LeftCard")
+  rightMatchups        Matchup[]      @relation("RightCard")
+  votes                Vote[]         @relation("ChosenCard")
+  bracketMatchesLeft   BracketMatch[] @relation("BracketLeft")
+  bracketMatchesRight  BracketMatch[] @relation("BracketRight")
+  bracketMatchesWinner BracketMatch[] @relation("BracketWinner")
+  bracketVotes         BracketVote[]  @relation("BracketVoteCard")
 
   @@index([position])
   @@index([overallRating])
   @@index([position, overallRating])
   @@index([featured])
+  @@index([eloRating])
+  @@index([cardType])
 }
 
 model Matchup {
-  id          String   @id @default(cuid())
-  leftCardId  Int
-  rightCardId Int
-  category    String   @default("random") // random | same-position | top-rated | icon-vs-current | featured
-  priority    Int      @default(0)
-  createdAt   DateTime @default(now())
+  id                        String   @id @default(cuid())
+  leftCardId                Int
+  rightCardId               Int
+  category                  String   @default("random") // position bucket: gk|def|mid|att|random
+  mode                      String?  // product mode: rivalry|same-level|goat|meta|club|wildcard|featured
+  featured                  Boolean  @default(false)
+  label                     String?  // e.g. "El Clásico", "Pace vs Skill"
+  priority                  Int      @default(0)
+  controversialRequeueCount Int      @default(0)
+  createdAt                 DateTime @default(now())
 
   leftCard  PlayerCard @relation("LeftCard", fields: [leftCardId], references: [id])
   rightCard PlayerCard @relation("RightCard", fields: [rightCardId], references: [id])
@@ -75,19 +85,87 @@ model Matchup {
 
   @@index([category, priority])
   @@index([leftCardId, rightCardId])
+  @@index([mode])
+  @@index([featured])
 }
 
 model Vote {
-  id            String   @id @default(cuid())
-  matchupId     String
-  chosenCardId  Int
-  sessionId     String
-  createdAt     DateTime @default(now())
+  id           String   @id @default(cuid())
+  matchupId    String
+  chosenCardId Int
+  sessionId    String
+  createdAt    DateTime @default(now())
 
-  matchup     Matchup    @relation(fields: [matchupId], references: [id], onDelete: Cascade)
-  chosenCard  PlayerCard @relation("ChosenCard", fields: [chosenCardId], references: [id])
+  matchup    Matchup    @relation(fields: [matchupId], references: [id], onDelete: Cascade)
+  chosenCard PlayerCard @relation("ChosenCard", fields: [chosenCardId], references: [id])
 
   @@index([matchupId])
   @@index([chosenCardId])
   @@index([sessionId])
+}
+
+model Rivalry {
+  id        Int      @id @default(autoincrement())
+  clubA     String
+  clubB     String
+  label     String?
+  priority  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([clubA, clubB])
+}
+
+model Bracket {
+  id        String    @id
+  title     String
+  kind      String    // 'daily' | 'theme'
+  seedDate  DateTime? @db.Date
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  matches BracketMatch[]
+
+  @@index([kind, seedDate])
+}
+
+model BracketMatch {
+  id           String   @id @default(cuid())
+  bracketId    String
+  round        Int
+  slot         Int
+  leftCardId   Int?
+  rightCardId  Int?
+  winnerCardId Int?
+  createdAt    DateTime @default(now())
+
+  bracket    Bracket     @relation(fields: [bracketId], references: [id], onDelete: Cascade)
+  leftCard   PlayerCard? @relation("BracketLeft", fields: [leftCardId], references: [id])
+  rightCard  PlayerCard? @relation("BracketRight", fields: [rightCardId], references: [id])
+  winnerCard PlayerCard? @relation("BracketWinner", fields: [winnerCardId], references: [id])
+  votes      BracketVote[]
+
+  @@index([bracketId, round, slot])
+}
+
+model BracketVote {
+  id           String   @id @default(cuid())
+  matchId      String
+  chosenCardId Int
+  sessionId    String
+  createdAt    DateTime @default(now())
+
+  match      BracketMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  chosenCard PlayerCard   @relation("BracketVoteCard", fields: [chosenCardId], references: [id])
+
+  @@index([matchId])
+  @@index([sessionId])
+}
+
+model UserStats {
+  sessionId       String   @id
+  totalVotes      Int      @default(0)
+  currentStreak   Int      @default(0)
+  bestStreak      Int      @default(0)
+  agreementVotes  Int      @default(0)
+  updatedAt       DateTime @default(now()) @updatedAt
 }

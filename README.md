@@ -2,7 +2,20 @@
 
 Fast, addictive football-card voting. Two real EA FC 26 player cards. You pick one. Next.
 
-Built with Next.js 15 (App Router) · TypeScript · Tailwind · Prisma · SQLite (dev) / Postgres-ready.
+Built with Next.js 15 (App Router) · TypeScript · Tailwind · Prisma · Postgres (Supabase in prod; SQLite works for dev).
+
+## v2 features shipped
+
+- **6 matchup modes** — *Rivalries* · *Same-level* · *GOAT* · *Meta* · *Inside club* · *Wildcard* — selectable on the homepage
+- **Featured openers** — hand-curated matchups (Messi vs Ronaldo, Mbappé vs Haaland, Bellingham vs Foden…) shown on first visit
+- **ELO per card** — updated on every vote; powers the community leaderboard
+- **Persistent streaks + agree-%** — survive across sessions via server-side `UserStats`
+- **Daily bracket** — 8-player single-elim, resets 00:00 UTC, same for everyone
+- **Themed brackets** — currently *Ballon d'Or 2025 shortlist*, extensible
+- **Share** — `navigator.share` → clipboard fallback; each matchup has a permalink + OG image
+- **Rematch controversial picks** — close (<55/45) matchups auto-requeue ~10% of the time
+- **12 Icon legends** — Pelé, Maradona, Zidane, R9, Ronaldinho, Henry, Cruyff, Maldini, Beckenbauer, Best, Baggio, Eusébio
+- **Auto-tagged meta attributes** — `pace_monster`, `skill_merchant`, `tank`, `playmaker`, `finisher`, `wall`
 
 ---
 
@@ -10,18 +23,21 @@ Built with Next.js 15 (App Router) · TypeScript · Tailwind · Prisma · SQLite
 
 ```bash
 # 1. Install deps
-npm install          # or pnpm i / yarn
+npm install
 
-# 2. Env
+# 2. Env — fill in DATABASE_URL + DIRECT_URL
 cp .env.example .env
 
 # 3. DB schema
-npx prisma db push   # creates prisma/dev.db with the full schema
+npx prisma db push
 
 # 4. Import the dataset (see §2)
 npm run import
 
-# 5. Go
+# 5. Seed v2 content (Icons, rivalries, featured matchups, themed bracket)
+npm run seed
+
+# 6. Go
 npm run dev
 ```
 

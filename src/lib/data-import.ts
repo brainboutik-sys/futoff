@@ -50,6 +50,25 @@ export interface PlayerCardInput {
   cardType: string;
   featured: boolean;
   source: string;
+  tags: string | null;
+}
+
+/**
+ * Derive meta-attribute tags from raw stats. Used for "Meta vs Real" matchup mode
+ * and on-card badges. Keep thresholds simple and stat-gated so they're explicable.
+ */
+export function computeTags(c: Omit<PlayerCardInput, "tags">): string[] {
+  const tags: string[] = [];
+  if (c.pace >= 90) tags.push("pace_monster");
+  if (c.shooting >= 88) tags.push("finisher");
+  if (c.passing >= 88) tags.push("playmaker");
+  if (c.dribbling >= 90 && (c.skillMoves ?? 0) >= 5) tags.push("skill_merchant");
+  if (c.physical >= 85) tags.push("tank");
+  if (c.defending >= 85) tags.push("wall");
+  if (c.overallRating >= 90) tags.push("hero");
+  if (c.overallRating >= 92) tags.push("goat_candidate");
+  if ((c.weakFoot ?? 0) >= 5 && (c.skillMoves ?? 0) >= 5) tags.push("five_star");
+  return tags;
 }
 
 export interface ImportSummary {
@@ -147,7 +166,7 @@ export function normalizeRow(raw: RawRow): PlayerCardInput | null {
     }
   };
 
-  return {
+  const base = {
     externalId,
     playerName,
     displayName: shortDisplay(playerName),
@@ -178,9 +197,11 @@ export function normalizeRow(raw: RawRow): PlayerCardInput | null {
     playStyles: parseListStr(orNull(raw["play style"])),
     imageUrl: orNull(raw["card"]),
     cardType: classifyCardType(overall),
-    featured: overall >= 90, // simple featured flag: OVR 90+
+    featured: overall >= 90,
     source: "dataset",
   };
+  const tags = computeTags(base);
+  return { ...base, tags: tags.length ? JSON.stringify(tags) : null };
 }
 
 /** Validate required fields and plausible ranges. Return an error string or null. */
@@ -261,6 +282,7 @@ export async function upsertMany(
             cardType: c.cardType,
             featured: c.featured,
             playStyles: c.playStyles,
+            tags: c.tags,
           },
         }),
       ),
