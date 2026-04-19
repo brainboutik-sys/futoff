@@ -1,0 +1,13 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  # Prisma: skip the "new version available" check on CI logs.
+  CHECKPOINT_DISABLE = "1"
+
+# Netlify auto-installs @netlify/plugin-nextjs when it detects a Next.js project,
+# but declaring it explicitly makes the intent obvious and prevents surprises.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
