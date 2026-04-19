@@ -149,6 +149,28 @@ For each card: `wins = votes chosen`, `appearances = COUNT(votes on matchups whe
 
 ---
 
+## Deployment (Netlify)
+
+Live at <https://futoff.netlify.app>. Build config: `netlify.toml`.
+
+```bash
+# One-time site setup (auth once, then):
+npx netlify-cli sites:create --name futoff --manual
+
+# Env vars (see .env.example for values you need)
+npx netlify-cli env:set DATABASE_URL '...pooler...?pgbouncer=true&connection_limit=1' --context production
+npx netlify-cli env:set DIRECT_URL   '...direct 5432...' --context production
+
+# Deploy
+npx netlify-cli deploy --build --prod
+```
+
+Netlify auto-installs `@netlify/plugin-nextjs`, which ships server components, API routes and middleware as Netlify Functions. Prisma is pre-configured with `binaryTargets = ["native", "rhel-openssl-3.0.x"]` so the query engine binary is included in the function bundle.
+
+Data import is run locally against Supabase via `DIRECT_URL`; Netlify Functions only serve reads and writes from the pooled connection.
+
+---
+
 ## 4. Switching to Postgres
 
 1. In `prisma/schema.prisma`, change `provider = "sqlite"` → `provider = "postgresql"`.
