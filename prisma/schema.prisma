@@ -1,0 +1,93 @@
+// FUTOFF — Prisma schema.
+// Dev default: SQLite. For Postgres prod: change provider to "postgresql" and set DATABASE_URL.
+// The schema intentionally uses scalar types that are portable across both.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model PlayerCard {
+  id            Int      @id @default(autoincrement())
+  externalId    String   @unique // EA player ID from dataset
+  playerName    String            // raw full name
+  displayName   String            // shortened / UI-facing name
+  gender        String?           // "M" | "F"
+  club          String?
+  nation        String?
+  league        String?
+  position      String            // primary position ("ST", "CM", "GK", ...)
+  altPositions  String?           // JSON array encoded as string
+  overallRating Int
+  // Six headline stats (GKs: derived from GK-specific attributes when present)
+  pace          Int
+  shooting      Int
+  passing       Int
+  dribbling     Int
+  defending     Int
+  physical      Int
+  // Goalkeeper-specific (nullable for outfield)
+  gkDiving      Int?
+  gkHandling    Int?
+  gkKicking     Int?
+  gkPositioning Int?
+  gkReflexes    Int?
+  // Meta
+  height        String?
+  weight        String?
+  age           Int?
+  weakFoot      Int?
+  skillMoves    Int?
+  preferredFoot String?
+  playStyles    String?           // JSON array encoded as string
+  imageUrl      String?
+  cardType      String            @default("standard") // standard | icon | hero | featured
+  featured      Boolean  @default(false)
+  source        String            @default("dataset")
+  createdAt     DateTime @default(now())
+
+  leftMatchups  Matchup[] @relation("LeftCard")
+  rightMatchups Matchup[] @relation("RightCard")
+  votes         Vote[]    @relation("ChosenCard")
+
+  @@index([position])
+  @@index([overallRating])
+  @@index([position, overallRating])
+  @@index([featured])
+}
+
+model Matchup {
+  id          String   @id @default(cuid())
+  leftCardId  Int
+  rightCardId Int
+  category    String   @default("random") // random | same-position | top-rated | icon-vs-current | featured
+  priority    Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  leftCard  PlayerCard @relation("LeftCard", fields: [leftCardId], references: [id])
+  rightCard PlayerCard @relation("RightCard", fields: [rightCardId], references: [id])
+  votes     Vote[]
+
+  @@index([category, priority])
+  @@index([leftCardId, rightCardId])
+}
+
+model Vote {
+  id            String   @id @default(cuid())
+  matchupId     String
+  chosenCardId  Int
+  sessionId     String
+  createdAt     DateTime @default(now())
+
+  matchup     Matchup    @relation(fields: [matchupId], references: [id], onDelete: Cascade)
+  chosenCard  PlayerCard @relation("ChosenCard", fields: [chosenCardId], references: [id])
+
+  @@index([matchupId])
+  @@index([chosenCardId])
+  @@index([sessionId])
+}

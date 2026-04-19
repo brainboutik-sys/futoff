@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background: #07080c;
+  color: #e9edf5;
+  min-height: 100%;
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background-image:
+    radial-gradient(1200px 600px at 50% -200px, rgba(34,211,238,0.08), transparent 60%),
+    radial-gradient(800px 400px at 85% 110%, rgba(245,196,78,0.05), transparent 60%);
+}
+
+button { cursor: pointer; }
+
+/* Pitch / card utility classes */
+.card-surface {
+  background: linear-gradient(160deg, rgba(20,24,34,0.85), rgba(10,12,18,0.95));
+  border: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(8px);
+}
+
+.stat-pill {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.versus-ring {
+  background: radial-gradient(circle, rgba(34,211,238,0.25), transparent 70%);
+}
